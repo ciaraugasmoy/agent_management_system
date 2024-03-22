@@ -19,14 +19,14 @@ class MovieTMDB(Command):
         # More accurate token calculation mimicking OpenAI's approach
         return len(text) + text.count(' ')
 
-    def interact_with_ai(self, user_input, character_name, prompt):
+    def interact_with_ai(self, user_input, prompt_text):
+        # Generate a more conversational and focused prompt
+        prompt = ChatPromptTemplate.from_messages([("system", prompt_text)]+[("user", user_input)])
+        
         output_parser = StrOutputParser()
         chain = prompt | self.llm | output_parser
 
         response = chain.invoke({"input": user_input})
-
-        # Get the prompt text
-        prompt_text = prompt.get_messages()[0][1]  # Assuming only one message in the prompt
 
         # Token usage logging and adjustment for more accurate counting
         tokens_used = self.calculate_tokens(prompt_text + user_input + response)
@@ -34,20 +34,13 @@ class MovieTMDB(Command):
         return response, tokens_used
 
 
-
-    def process_message(self, user_input, character_name):
-        prompts = [
-            ChatPromptTemplate.from_messages([("system", "you are a movie expert, recommend a movie")]),
-            ChatPromptTemplate.from_messages([("system", "you are a book expert, recommend a book")]),
-            ChatPromptTemplate.from_messages([("system", "you are a job expert, recommend a job")])
-        ]
-
+    def process_message(self, user_input):
+        prompts = ["you are a book expert, give book suggestions", "you are a movie expert, give movie suggestions"]
         responses = []
         total_tokens_used = 0
-
         for prompt in prompts:
             try:
-                response, tokens_used = self.interact_with_ai(user_input, character_name, prompt)
+                response, tokens_used = self.interact_with_ai(user_input, prompt)
                 responses.append(response)
                 total_tokens_used += tokens_used
             except Exception as e:
@@ -59,15 +52,14 @@ class MovieTMDB(Command):
 
 
     def execute(self, *args, **kwargs):
-        character_name = kwargs.get("character_name", "Movie Expert")
-        print(f"Welcome to the Movie Expert Chat! Give me a summary of what you want to watch and I'll give you some results. Type 'done' to exit anytime.")
+        print(f"get tmdb suggestions, enter done to leave")
 
         while True:
             user_input = input("You: ").strip()
             if user_input.lower() == "done":
-                print("Thank you for using the Movie Expert Chat. Goodbye!")
+                print("Thank you Goodbye!")
                 break
 
-            response, total_tokens_used = self.process_message(user_input, character_name)
-            print(f"Movie Expert: {response}")
+            response, total_tokens_used = self.process_message(user_input)
+            print(f"URL: {response}")
             print(f"(This interaction used {total_tokens_used} tokens.)")

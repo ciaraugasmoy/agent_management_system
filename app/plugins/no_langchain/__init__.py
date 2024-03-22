@@ -6,10 +6,10 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from app.commands import Command
 
-class MovieExpertChat2(Command):
+class MovieExpertChat3(Command):
     def __init__(self):
         super().__init__()
-        self.name = "movies2"
+        self.name = "m"
         self.description = "Interact with a Movie Expert AI to explore movie preferences."
         self.history = []
         self.message= []
