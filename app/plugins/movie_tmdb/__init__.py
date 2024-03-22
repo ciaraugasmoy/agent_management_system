@@ -14,7 +14,6 @@ class MovieTMDB(Command):
         self.name = "movies_tmdb"
         self.description = "Interact with a Movie Expert AI to explore movie preferences."
         load_dotenv()
-        BEARER_TOKEN = os.getenv('BEARER_TOKEN')
         API_KEY = os.getenv('OPEN_AI_KEY')
         self.llm = ChatOpenAI(openai_api_key=API_KEY)  # Initialize once and reuse
 
@@ -41,28 +40,33 @@ class MovieTMDB(Command):
     def process_message(self, user_input):
         GENRE_PROMPT = os.getenv('GENRE_PROMPT')
         ACTOR_PROMPT = os.getenv('ACTOR_PROMPT')
-        prompts = [GENRE_PROMPT, ACTOR_PROMPT]
+        prompts = [GENRE_PROMPT]
         responses = []
         total_tokens_used = 0
         for prompt in prompts:
             try:
                 response, tokens_used = self.interact_with_ai(user_input, prompt)
-                responses.append(response)
+                logging.info(f"response before encoding. {response}")
+                param='with_genres='+urllib.parse.quote(response)
+                responses.append(param)
                 total_tokens_used += tokens_used
             except Exception as e:
                 print("Sorry, there was an error processing your request. Please try again.")
                 logging.error(f"Error during interaction: {e}")
 
-        combined_response = '&'.urllib.parse.quote(join(responses))
-        return combined_response, total_tokens_used
+        url_append = '&'.join(responses)
+        url="https://api.themoviedb.org/3/discover/movie?include_adult=false&include_video=false&language=en-US&page=1&sort_by=popularity.desc"+url_append
+        self.callAPI(url)
+        return url, total_tokens_used
 
-    def callAPI(self,url,url_append):
-        url = "https://api.themoviedb.org/3/discover/movie?include_adult=false&include_video=false&language=en-US&page=1&sort_by=popularity.desc"+url_append
+    def callAPI(self,url):
+        BEARER_TOKEN = os.getenv('BEARER_TOKEN')
         headers = {
             "accept": "application/json",
             "Authorization": f"Bearer {BEARER_TOKEN}"
         }
         response = requests.get(url, headers=headers)
+        logging.info(f"tmdb API call made.")
         print(response.text)
     
     def execute(self, *args, **kwargs):
@@ -76,4 +80,5 @@ class MovieTMDB(Command):
 
             response, total_tokens_used = self.process_message(user_input)
             print(f"URL: {response}")
+
             print(f"(This interaction used {total_tokens_used} tokens.)")
