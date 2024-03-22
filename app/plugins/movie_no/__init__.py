@@ -6,12 +6,11 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from app.commands import Command
 
-class MovieExpertChat(Command):
+class MovieExpertChat2(Command):
     def __init__(self):
         super().__init__()
-        self.name = "movies"
+        self.name = "movies2"
         self.description = "Interact with a Movie Expert AI to explore movie preferences."
-        self.history = []
         load_dotenv()
         API_KEY = os.getenv('OPEN_AI_KEY')
         # you can try GPT4 but it costs a lot more money than the default 3.5
@@ -25,10 +24,9 @@ class MovieExpertChat(Command):
     def interact_with_ai(self, user_input, character_name):
         # Generate a more conversational and focused prompt
         prompt_text = "You're a Movie Expert AI. Engage the user in a natural conversation about their movie preferences. Use your insights to recommend movies they might like."
-        prompt = ChatPromptTemplate.from_messages(self.history + [("system", prompt_text)])
         
         output_parser = StrOutputParser()
-        chain = prompt | self.llm | output_parser
+        chain = ChatPromptTemplate() | ChatPromptTemplate(prompt_text) | self.llm | output_parser
 
         response = chain.invoke({"input": user_input})
 
@@ -39,11 +37,10 @@ class MovieExpertChat(Command):
 
     def interact_with_ai2(self, user_input, character_name):
         # Generate a more conversational and focused prompt
-        prompt_text = "You're a Movie Expert AI. Engage the user in a natural conversation about their movie preferences. Use your insights to recommend movies they might like. short answer"
-        prompt = ChatPromptTemplate.from_messages(self.history + [("system", prompt_text)])
+        prompt_text = "You're a book expert AI. Engage the user in a natural conversation about their book preferences. Use your insights to recommend movies they might like. short answer"
         
         output_parser = StrOutputParser()
-        chain = prompt | self.llm | output_parser
+        chain = ChatPromptTemplate() | ChatPromptTemplate(prompt_text) | self.llm | output_parser
 
         response = chain.invoke({"input": user_input})
 
@@ -51,6 +48,7 @@ class MovieExpertChat(Command):
         tokens_used = self.calculate_tokens(prompt_text + user_input + response)
         logging.info(f"OpenAI API call made. Tokens used: {tokens_used}")
         return response, tokens_used
+
 
     def execute(self, *args, **kwargs):
         character_name = kwargs.get("character_name", "Movie Expert")
@@ -61,14 +59,11 @@ class MovieExpertChat(Command):
             if user_input.lower() == "done":
                 print("Thank you for using the Movie Expert Chat. Goodbye!")
                 break
-
-            self.history.append(("user", user_input))
             
             try:
                 response, tokens_used = self.interact_with_ai(user_input, character_name)
                 print(f"Movie Expert: {response}")
                 print(f"(This interaction used {tokens_used} tokens.)")
-                self.history.append(("system", response))
                 response, tokens_used = self.interact_with_ai2(user_input, character_name)
                 print(f"Movie Expert no history: {response}")
                 print(f"(This interaction used {tokens_used} tokens.)")
