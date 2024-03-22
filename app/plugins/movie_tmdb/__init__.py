@@ -1,5 +1,7 @@
 import os
 import logging
+import requests
+import urllib.parse
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
@@ -12,8 +14,10 @@ class MovieTMDB(Command):
         self.name = "movies_tmdb"
         self.description = "Interact with a Movie Expert AI to explore movie preferences."
         load_dotenv()
+        BEARER_TOKEN = os.getenv('BEARER_TOKEN')
         API_KEY = os.getenv('OPEN_AI_KEY')
         self.llm = ChatOpenAI(openai_api_key=API_KEY)  # Initialize once and reuse
+
 
     def calculate_tokens(self, text):
         # More accurate token calculation mimicking OpenAI's approach
@@ -35,7 +39,9 @@ class MovieTMDB(Command):
 
 
     def process_message(self, user_input):
-        prompts = ["you are a book expert, give book suggestions", "you are a movie expert, give movie suggestions"]
+        GENRE_PROMPT = os.getenv('GENRE_PROMPT')
+        ACTOR_PROMPT = os.getenv('ACTOR_PROMPT')
+        prompts = [GENRE_PROMPT, ACTOR_PROMPT]
         responses = []
         total_tokens_used = 0
         for prompt in prompts:
@@ -47,10 +53,18 @@ class MovieTMDB(Command):
                 print("Sorry, there was an error processing your request. Please try again.")
                 logging.error(f"Error during interaction: {e}")
 
-        combined_response = ' '.join(responses)
+        combined_response = '&'.urllib.parse.quote(join(responses))
         return combined_response, total_tokens_used
 
-
+    def callAPI(self,url,url_append):
+        url = "https://api.themoviedb.org/3/discover/movie?include_adult=false&include_video=false&language=en-US&page=1&sort_by=popularity.desc"+url_append
+        headers = {
+            "accept": "application/json",
+            "Authorization": f"Bearer {BEARER_TOKEN}"
+        }
+        response = requests.get(url, headers=headers)
+        print(response.text)
+    
     def execute(self, *args, **kwargs):
         print(f"get tmdb suggestions, enter done to leave")
 
