@@ -43,42 +43,61 @@ class MovieTMDB(Command):
             return id
         except Exception as e:
             print("Sorry, there was an error processing your request. Please try again.")
-            logging.error(f"Error during interaction: {e}")
+            logging.error(f"Error during interaction or no response: {e}")
             return None
 
-
-    def process_message(self, user_input):
-        DISCOVER_URL = os.getenv('DISCOVER_URL')
+    def get_genre_params(self, user_input):
         GENRE_PROMPT = os.getenv('GENRE_PROMPT')
-        ACTOR_PROMPT = os.getenv('ACTOR_PROMPT')
-        prompts = [GENRE_PROMPT]
-        params = []
-        total_tokens_used = 0
-
         try:
             response, tokens_used = self.interact_with_ai(user_input, GENRE_PROMPT)
-            logging.info(f"response before encoding. {response}")
-            param='with_genres='+urllib.parse.quote(response)
-            params.append(param)
-            total_tokens_used += tokens_used
+            logging.info(f"response for GENRE before encoding {response}")
+            if response != 'none':
+                param='with_genres='+urllib.parse.quote(response)
+                return param, tokens_used
+            else:
+                logging.info(f"ai finds no genre. {response}")
+                return None, tokens_used
         except Exception as e:
-            print("Sorry, there was an error processing your request. Please try again.")
             logging.error(f"Error during interaction: {e}")
+            return None,0
 
+    def get_actor_params(self, user_input):
+        ACTOR_PROMPT = os.getenv('ACTOR_PROMPT')
         try:
             query, tokens_used = self.interact_with_ai(user_input, ACTOR_PROMPT)
-            logging.info(f"response before encoding. {response}")
-            total_tokens_used += tokens_used
-            if response != 'none':
+            logging.info(f"response before encoding. {query}")
+            if query != 'none':
                 actor_id=self.find_id_param('person',query)#returns first id in list or None
                 if actor_id!=None:
                     param = 'with_people='+actor_id
-                    params.append(param)
+                    return param, tokens_used
+                else:
+                    logging.info(f"ai finds no actor id for the query. {query}")
+                    return None, tokens_used
+            else:
+                logging.info(f"ai finds no actor query. {query}")
+                return None, tokens_used
         except Exception as e:
-            print("Sorry, there was an error processing your request. Please try again.")
             logging.error(f"Error during interaction: {e}")
-        
+            return None,0
 
+    def process_message(self, user_input):
+        DISCOVER_URL = os.getenv('DISCOVER_URL')
+        params = []
+        total_tokens_used = 0
+
+        #get genre param
+        param, tokens_used = self.get_genre_params(user_input)
+        if param!=None:
+            params.append(param)
+        total_tokens_used += tokens_used
+
+        #get actor param
+        param, tokens_used = self.get_actor_params(user_input)
+        if param!=None:
+            params.append(param)
+        total_tokens_used += tokens_used
+        
         params = '&'.join(params)
         url=DISCOVER_URL+params
         return url, total_tokens_used
