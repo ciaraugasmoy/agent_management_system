@@ -19,7 +19,6 @@ class MovieTMDB(Command):
 
 
     def calculate_tokens(self, text):
-        # More accurate token calculation mimicking OpenAI's approach
         return len(text) + text.count(' ')
 
     def interact_with_ai(self, user_input, prompt_text):
@@ -32,6 +31,20 @@ class MovieTMDB(Command):
         tokens_used = self.calculate_tokens(prompt_text + user_input + response)
         logging.info(f"OpenAI API call made. Tokens used: {tokens_used}")
         return response, tokens_used
+
+    def find_id_param(self, type, query):
+        '''Takes type and query to find ids of movies, people and keywords'''
+        try:
+            query = urllib.parse.quote(query.encode('utf-8'))
+            query_url = f'https://api.themoviedb.org/3/search/{type}?query={query}&include_adult=false&language=en-US&page=1'
+            logging.info(f"response before encoding. {query_url}")
+            result = self.callAPI(query_url)
+            id = str(result['results'][0]['id'])
+            return id
+        except Exception as e:
+            print("Sorry, there was an error processing your request. Please try again.")
+            logging.error(f"Error during interaction: {e}")
+            return None
 
 
     def process_message(self, user_input):
@@ -53,18 +66,12 @@ class MovieTMDB(Command):
             logging.error(f"Error during interaction: {e}")
 
         try:
-            response, tokens_used = self.interact_with_ai(user_input, ACTOR_PROMPT)
+            query, tokens_used = self.interact_with_ai(user_input, ACTOR_PROMPT)
             logging.info(f"response before encoding. {response}")
             total_tokens_used += tokens_used
             if response != 'none':
-                query = urllib.parse.quote(response.encode('utf-8'))
-                act_url= f'https://api.themoviedb.org/3/search/person?query={query}&include_adult=false&language=en-US&page=1'
-                print(f'actor url query{act_url}')
-                actor_list=self.callAPI(act_url)
-                actor_name = actor_list['results'][0]['name']
-                logging.info(f"Actor name: {actor_name}")
-                actor_id = str(actor_list['results'][0]['id'])
-                param = 'with_people=' + urllib.parse.quote(actor_id.encode('utf-8'))
+                actor_id=self.find_id_param('person',query)#returns first id in list or false
+                param = 'with_people='+actor_id
                 params.append(param)
         except Exception as e:
             print("Sorry, there was an error processing your request. Please try again.")
@@ -94,11 +101,10 @@ class MovieTMDB(Command):
                 print("Thank you Goodbye!")
                 break
             if user_input.lower() == "api":
-                query=urllib.parse.quote("tom hanks")
-                call=self.callAPI(f'https://api.themoviedb.org/3/search/person?query={query}&include_adult=false&language=en-US&page=1')
-                print (call['results'][0]['name'])
+                print(self.find_id_param('person','tom hanks'))
+                break
             response, total_tokens_used = self.process_message(user_input)
             print(f"URL: {response}")
-            print(self.callAPI(response))
+            # print(self.callAPI(response))
 
             print(f"(This interaction used {total_tokens_used} tokens.)")
