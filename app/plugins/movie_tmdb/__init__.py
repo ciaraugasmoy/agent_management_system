@@ -70,9 +70,10 @@ class MovieTMDB(Command):
             logging.info(f"response before encoding. {response}")
             total_tokens_used += tokens_used
             if response != 'none':
-                actor_id=self.find_id_param('person',query)#returns first id in list or false
-                param = 'with_people='+actor_id
-                params.append(param)
+                actor_id=self.find_id_param('person',query)#returns first id in list or None
+                if actor_id!=None:
+                    param = 'with_people='+actor_id
+                    params.append(param)
         except Exception as e:
             print("Sorry, there was an error processing your request. Please try again.")
             logging.error(f"Error during interaction: {e}")
