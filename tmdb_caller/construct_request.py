@@ -6,11 +6,10 @@ from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from app.commands import Command
+import sys
 
-class MovieTMDB(Command):
+class MovieTMDB():
     def __init__(self):
-        super().__init__()
         self.name = "movies_tmdb"
         self.description = "Interact with a Movie Expert AI to explore movie preferences."
         load_dotenv()
@@ -111,19 +110,15 @@ class MovieTMDB(Command):
         logging.info(f"tmdb API call made.")
         return response.json()
     
-    def execute(self, *args, **kwargs):
-        print(f"get tmdb suggestions, enter done to leave")
+    def execute(self, user_input):
+        response, total_tokens_used = self.process_message(user_input)
+        logging.info("{response}")
+        logging.info(f"(This interaction used {total_tokens_used} tokens.)")
 
-        while True:
-            user_input = input("You: ").strip()
-            if user_input.lower() == "done":
-                print("Thank you Goodbye!")
-                break
-            if user_input.lower() == "api":
-                print(self.find_id_param('person','tom hanks'))
-                break
-            response, total_tokens_used = self.process_message(user_input)
-            print(f"URL: {response}")
-            # print(self.callAPI(response))
-
-            print(f"(This interaction used {total_tokens_used} tokens.)")
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: python construct_request.py \"input_text\"")
+    else:
+        input_text = sys.argv[1]
+        movie_tmdb = MovieTMDB()
+        movie_tmdb.execute(input_text)
